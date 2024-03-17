@@ -8,27 +8,28 @@ import matplotlib.pyplot as plt
 plt.rcParams['font.family'] ='Malgun Gothic'
 
 # 페이지 넓게
-st.set_page_config(layout="wide")
+st.set_page_config(layout='wide')
 
 # 데이터 불러오기 / 한글이 깨지므로 인코딩
 gdp_original = pd.read_csv('시도별_경제활동별_지역내총생산_20240315165307.csv', encoding='cp949')
 per_gdp_original = pd.read_csv('시도별_1인당_지역내총생산__지역총소득__개인소득_20240316162000.csv', encoding='cp949')
 
-# 특정 열만 갖고오기 GDP
+# 특정 열만 갖고오기 지역별 GDP
 selected_columns_gdp = ['시도별','경제활동별','명목']
 selected_columns_korea = ['종합_시도별','종합_경제활동별','종합_명목']
 gdp = gdp_original[selected_columns_gdp] # 지역별
 gdp_korea = gdp_original[selected_columns_korea] # 전국
+gdp_korea_display = gdp_korea[['종합_시도별', '종합_명목']]
+gdp_korea_display['종합_명목'] = gdp_korea_display['종합_명목'] // 1000000  # 백만원 단위를 조 단위로 변환
 
 # 특정 열만 갖고오기 1인당 GDP
-selected_columns_per_gdp = ['시도별','1인당 지역내총생산','1인당 지역총소득','1인당 개인소득','1인당 민간소비']
-selected_columns_per_gdp_korea = ['시도별','1인당 지역내총생산']
-per_gdp = per_gdp_original[selected_columns_per_gdp] # 지역별
-per_gdp_korea = per_gdp_original[selected_columns_per_gdp_korea] # 전국
+selected_columns_per_gdp = ['시도별','1인당 지역내총생산']
+per_gdp = per_gdp_original[selected_columns_per_gdp]
 
 # 빈칸 제거
 gdp.dropna(inplace=True)
 gdp_korea.dropna(inplace=True)
+gdp_korea_display.dropna(inplace=True)
 
 # 시/도 리스트
 city_list = ['전국', '서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시', '울산광역시','세종특별자치시']
@@ -38,11 +39,14 @@ do_list = ['경기도', '강원도', '충청북도', '충청남도', '전라북�
 with st.sidebar:
     st.header('안녕하세요!')
     # 셀렉박스에서 선택한 값을 저장. 시/도를 나타냄
-    selected_option = st.sidebar.selectbox("시/도 선택", city_list + do_list)
+    selected_sido = st.sidebar.selectbox("시/도 선택", city_list + do_list)
+    # 지역 총생산, 1인당 총생산을 선택하는 
+    if selected_sido ==  '전국':
+        selected_gdp = st.sidebar.selectbox('',['지역 총생산','1인당 총생산'])
     # 사이드바 문구
     st.subheader('자료 출처 : KOSIS 국가통계포털')
     st.text('시도별_경제활동별_지역내총생산_20240\n315165307.csv')
-    st.text('시도별_1인당_지역내총생산__지역총소득__개인소득_20240316162000.csv')
+    st.text('시도별_1인당_지역내총생산__지역총소득\n__개인소득_20240316162000.csv')
     st.text('2022년 기준입니다.')
 
 # 전국 중심 좌표
@@ -53,7 +57,7 @@ region_center = {
     '서울특별시': [37.5565, 126.9780],
     '부산광역시': [35.1796, 129.0756],
     '대구광역시': [35.8214, 128.6014],
-    '인천광역시': [37.4563, 126.7052],
+    '인천광역시': [37.5145, 126.4648],
     '광주광역시': [35.1595, 126.8526],
     '대전광역시': [36.3504, 127.3845],
     '울산광역시': [35.5384, 129.3114],
@@ -76,41 +80,135 @@ korea_map = folium.Map(location=korea_center, zoom_start=6, tiles='CartoDB posit
 geojson_data = 'skorea-provinces-2018-geo.json'
 folium.GeoJson(geojson_data, name='geojson_map').add_to(korea_map)
 
-# 시/도 선택에 따른 처리
-if selected_option == '전국':
-    col1, col2 ,col3 = st.columns([1,1,2])
-    with col1:
-        folium_static(korea_map,width=400, height=300)
-    with col2:
-        # 전국 GDP 데이터 표시
-        st.subheader("전국 총생산 (단위 : 백만원)")
-        st.write(gdp_korea)
+# 수치가 높을수록 지도상에 강조
+def color_map(data_option, coulmn_option):
+    choropleth_layer = folium.Choropleth(
+        geo_data=geojson_data,
+        data=data_option,
+        columns=coulmn_option,
+        key_on='feature.properties.name',
+        fill_color='YlOrRd',
+        fill_opacity=0.7,
 
-        # 전국 1인당 GDP 데이터 표시
-        st.subheader('1인당 총생산 (단위 : 달러)')
-        st.write(per_gdp_korea)
-    with col3:
-        # 막대그래프 표시
-        plt.figure(figsize=(5, 2))
-        plt.bar(gdp_korea['종합_시도별'], gdp_korea['종합_명목'])
-        plt.xlabel('지역별 총생산')
-        plt.xticks(rotation=45, ha='right', fontsize=8) # 글자가 겹침
-        plt.ylabel('명목')
-        plt.title(f"{selected_option} 총생산")
-        st.pyplot(plt)
+        legend_name=''
+    ).add_to(korea_map)
+
+# 시/도 선택에 따른 처리
+if selected_sido == '전국':
+    if selected_gdp == '지역 총생산':
+        with st.container():
+            col1, col2 ,col3 = st.columns([2,1,1])
+            gdp_korea_display_sorted = gdp_korea_display.sort_values(by='종합_명목', ascending=False)  # 숫자를 높은 순서대로 정렬
+            gdp_korea_display_sorted = gdp_korea_display_sorted.rename(columns={'종합_시도별':'시/도','종합_명목':'총생산 (조)'})
+            gdp_korea_display_sorted_NA = gdp_korea_display_sorted[gdp_korea_display_sorted['시/도'] != '전국']
+            with col1:
+                # 지도
+                st.subheader('전국 총생산')
+                color_map(gdp_korea_display_sorted_NA, ['시/도','총생산 (조)'])
+                folium_static(korea_map)
+
+            with col2:
+                # 전국 GDP 데이터 표시
+                st.subheader("시/도 순위")
+                st.dataframe(gdp_korea_display_sorted, hide_index=True,width=300,height=510)
+
+            with col3:
+                # 메트릭카드
+                max_gdp_location = gdp_korea_display_sorted_NA.iloc[0]['시/도']
+                max_gdp_value = int(gdp_korea_display_sorted_NA.iloc[0]['총생산 (조)']) # int:정수부분만 표시
+                min_gdp_location = gdp_korea_display_sorted_NA.iloc[-1]['시/도']
+                min_gdp_value = int(gdp_korea_display_sorted_NA.iloc[-1]['총생산 (조)'])
+
+
+                st.subheader('지역별 최고/최저 (조)')
+                st.metric(label=max_gdp_location, value=max_gdp_value)
+                st.metric(label=min_gdp_location, value=min_gdp_value)
+
+                # 경제활동별 매트릭카드
+                metric_2 = gdp[gdp['시도별'] == '전국'] 
+                gdp_excluded_name = metric_2[~metric_2['경제활동별'].isin(['지역내총생산(시장가격)', '순생산물세', '총부가가치(기초가격)'])] # 합산항목은 제외
+
+                # 최고/최저값 계산
+                max_economy_location = gdp_excluded_name[gdp_excluded_name['명목'] == gdp_excluded_name['명목'].max()]['경제활동별'].values[0]
+                max_economy_value = int(gdp_excluded_name['명목'].max()) // 1000000
+
+                min_economy_location = gdp_excluded_name[gdp_excluded_name['명목'] == gdp_excluded_name['명목'].min()]['경제활동별'].values[0]
+                min_economy_value = int(gdp_excluded_name['명목'].min()) // 1000000
+
+                st.subheader('경제활동별 최고/최저 (조)')
+                st.metric(label=max_economy_location, value=max_economy_value)
+                st.metric(label=min_economy_location, value=min_economy_value)
+                
+            col4, col5 = st.columns(2)
+            with col4:
+                # 상위 10개의 데이터만 추출
+                top_10_gdp = gdp_excluded_name.nlargest(10, '명목')
+                # 경제활동별 생산량 그래프
+                plt.figure(figsize=(6, 4))
+                plt.bar(top_10_gdp['경제활동별'], top_10_gdp['명목'] // 1000000) 
+                plt.xlabel('경제활동별 (조)')
+                plt.ylabel('총생산')
+                plt.title('상위 10개 경제활동별 생산량 그래프')
+                plt.xticks(rotation=45, ha='right')
+                st.pyplot(plt)
+            with col5:
+                # 가독성을 위하여 100조 이하는 '기타'로 묶어서 표시
+                threshold = 100
+                small_values = gdp_korea_display_sorted_NA[gdp_korea_display_sorted_NA['총생산 (조)'] < threshold]
+                other_values = small_values['총생산 (조)'].sum()
+                merged_data = gdp_korea_display_sorted_NA.copy()
+                if len(small_values) > 0:
+                    merged_data.loc[merged_data['총생산 (조)'] < threshold, '시/도'] = '기타'
+                    merged_data = merged_data.groupby('시/도').sum().reset_index()
+                # 원형그래프 표시
+                st.subheader('전국 생산량 비율')
+                fig, ax = plt.subplots(figsize=(8,8))
+                ax.pie(merged_data['총생산 (조)'], labels=merged_data['시/도'], autopct='%1.1f%%', startangle=90, textprops={'fontsize':20})
+                ax.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+                st.pyplot(fig)
+
+
+    elif selected_gdp == '1인당 총생산':
+        with st.container():
+            col1, col2 ,col3 = st.columns([2,1,1])
+            per_gdp = per_gdp.rename(columns={'시도별':'시/도','1인당 지역내총생산':'총생산 (달러)'})
+            with col1:
+                # 지도
+                st.subheader('1인당 총생산')
+                color_map(per_gdp, ['시/도','총생산 (달러)'])
+                folium_static(korea_map)
+            with col2:
+                # 전국 1인당 GDP 데이터 표시
+                st.subheader('시/도 순위')
+                per_gdp_korea_display = per_gdp[['시/도','총생산 (달러)']].copy()
+                per_gdp_korea_display_sorted = per_gdp_korea_display.sort_values(by='총생산 (달러)',ascending=False)
+                st.dataframe(per_gdp_korea_display_sorted,hide_index=True,width=300,height=510)
+            with col3:
+                # 막대그래프 표시
+                plt.figure(figsize=(4,4))
+                plt.bar(per_gdp['시/도'], per_gdp['총생산 (달러)'])
+                plt.title('지역별 1인당 총생산')
+                plt.xlabel('단위 : *1달러')
+                plt.xticks(rotation=45, ha='right', fontsize=8) # 글자가 겹침
+                # plt.title(f"{selected_option} 총생산") 
+                st.pyplot(plt)
+            col4, col5 = st.columns(2)
+            with col4:
+                pass
+            with col5:
+                pass
 else:
     # 시/도에 따라 줌을 다르게 설정
-    if selected_option in city_list:
+    if selected_sido in city_list:
         zoom = 9
     else:
         zoom = 7
-
     # 선택한 지역 지도
-    region_map = folium.Map(location=region_center[selected_option], zoom_start = zoom, tiles='CartoDB positron', width=400, height=300)
+    region_map = folium.Map(location=region_center[selected_sido], zoom_start = zoom, tiles='CartoDB positron')
     # 마커 표시
     folium.Marker(
-        location=region_center[selected_option],
-        tooltip=f"{selected_option}"
+        location=region_center[selected_sido],
+        tooltip=f"{selected_sido}"
     ).add_to(region_map)
     folium.GeoJson(geojson_data, name='geojson_map').add_to(region_map)
-    region_page.show_region(gdp,per_gdp,region_map,selected_option)
+    region_page.show_region(gdp,per_gdp,region_map,selected_sido)
