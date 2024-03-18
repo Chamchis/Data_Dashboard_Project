@@ -103,7 +103,7 @@ if selected_sido == '전국':
             gdp_korea_display_sorted_NA = gdp_korea_display_sorted[gdp_korea_display_sorted['시/도'] != '전국']
             with col1:
                 # 지도
-                st.subheader('전국 총생산')
+                st.subheader('대한민국 총생산 (단위 : 조)')
                 color_map(gdp_korea_display_sorted_NA, ['시/도','총생산 (조)'])
                 folium_static(korea_map)
 
@@ -120,7 +120,7 @@ if selected_sido == '전국':
                 min_gdp_value = int(gdp_korea_display_sorted_NA.iloc[-1]['총생산 (조)'])
 
 
-                st.subheader('지역별 최고/최저 (조)')
+                st.subheader('지역별 최고/최저')
                 st.metric(label=max_gdp_location, value=max_gdp_value)
                 st.metric(label=min_gdp_location, value=min_gdp_value)
 
@@ -135,7 +135,7 @@ if selected_sido == '전국':
                 min_economy_location = gdp_excluded_name[gdp_excluded_name['명목'] == gdp_excluded_name['명목'].min()]['경제활동별'].values[0]
                 min_economy_value = int(gdp_excluded_name['명목'].min()) // 1000000
 
-                st.subheader('경제활동별 최고/최저 (조)')
+                st.subheader('경제활동별 최고/최저')
                 st.metric(label=max_economy_location, value=max_economy_value)
                 st.metric(label=min_economy_location, value=min_economy_value)
                 
@@ -148,7 +148,7 @@ if selected_sido == '전국':
                 # 경제활동별 생산량 그래프
                 plt.figure(figsize=(6, 4))
                 plt.bar(top_5_gdp['경제활동별'], top_5_gdp['명목'] // 1000000) 
-                plt.xlabel('경제활동별 (조)')
+                plt.xlabel('경제활동별')
                 plt.ylabel('총생산')
                 plt.title('상위 5개 경제활동별 생산량 그래프')
                 plt.xticks(rotation=45, ha='right')
@@ -175,7 +175,7 @@ if selected_sido == '전국':
             per_gdp = per_gdp.rename(columns={'시도별':'시/도','1인당 지역내총생산':'총생산 (달러)'})
             with col1:
                 # 지도
-                st.subheader('1인당 총생산')
+                st.subheader('대한민국 1인당 총생산')
                 color_map(per_gdp, ['시/도','총생산 (달러)'])
                 folium_static(korea_map)
             with col2:
@@ -214,7 +214,20 @@ if selected_sido == '전국':
                 plt.xticks(rotation=45, ha='right', fontsize=8) # 글자가 겹침
                 st.pyplot(plt)
             with col5:
-                pass
+                gdp_per_capita = {
+                    '국가': ['중국', '일본', '러시아', '영국', '미국', '한국'],
+                    '1인당 GDP': [12621, 33949, 12593, 46066, 80034, 32423]
+                }
+                gdp_per_capita_data = pd.DataFrame(gdp_per_capita)
+                gdp_per_capita_data = gdp_per_capita_data.sort_values(by='1인당 GDP',ascending=False)
+                # 막대그래프 표시
+                plt.figure(figsize=(6,4))
+                plt.bar(gdp_per_capita_data['국가'], gdp_per_capita_data['1인당 GDP'])
+                plt.title('세계 주요국 1인당 총생산')
+                plt.xlabel('국가별 (달러)')
+                plt.ylabel('총생산')
+                plt.xticks(rotation=45,ha='right',fontsize=8)
+                st.pyplot(plt)
 else:
     # 시/도에 따라 줌을 다르게 설정
     if selected_sido in city_list:
