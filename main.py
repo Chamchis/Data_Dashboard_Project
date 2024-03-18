@@ -141,21 +141,22 @@ if selected_sido == '전국':
                 
             col4, col5 = st.columns(2)
             with col4:
-                # 상위 10개의 데이터만 추출
-                top_10_gdp = gdp_excluded_name.nlargest(10, '명목')
+                # 상위 5개의 데이터만 추출
+                gdp_excluded_name = gdp_excluded_name[gdp_excluded_name['경제활동별'].isin(['농업, 임업 및 어업', '광제조업',
+                                        '전기, 가스, 증기 및 공기 조절 공급업','건설업','서비스업'])]
+                top_5_gdp = gdp_excluded_name.nlargest(5, '명목')
                 # 경제활동별 생산량 그래프
                 plt.figure(figsize=(6, 4))
-                plt.bar(top_10_gdp['경제활동별'], top_10_gdp['명목'] // 1000000) 
+                plt.bar(top_5_gdp['경제활동별'], top_5_gdp['명목'] // 1000000) 
                 plt.xlabel('경제활동별 (조)')
                 plt.ylabel('총생산')
-                plt.title('상위 10개 경제활동별 생산량 그래프')
+                plt.title('상위 5개 경제활동별 생산량 그래프')
                 plt.xticks(rotation=45, ha='right')
                 st.pyplot(plt)
             with col5:
-                # 가독성을 위하여 100조 이하는 '기타'로 묶어서 표시
-                threshold = 100
+                # 가독성을 위하여 일정 수치 이하는 '기타'로 묶어서 표시
+                threshold = 80
                 small_values = gdp_korea_display_sorted_NA[gdp_korea_display_sorted_NA['총생산 (조)'] < threshold]
-                other_values = small_values['총생산 (조)'].sum()
                 merged_data = gdp_korea_display_sorted_NA.copy()
                 if len(small_values) > 0:
                     merged_data.loc[merged_data['총생산 (조)'] < threshold, '시/도'] = '기타'
@@ -164,7 +165,7 @@ if selected_sido == '전국':
                 st.subheader('전국 생산량 비율')
                 fig, ax = plt.subplots(figsize=(8,8))
                 ax.pie(merged_data['총생산 (조)'], labels=merged_data['시/도'], autopct='%1.1f%%', startangle=90, textprops={'fontsize':20})
-                ax.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+                ax.axis('equal')
                 st.pyplot(fig)
 
 
@@ -179,22 +180,39 @@ if selected_sido == '전국':
                 folium_static(korea_map)
             with col2:
                 # 전국 1인당 GDP 데이터 표시
+                per_gdp = per_gdp[per_gdp['시/도'] != '전국']
                 st.subheader('시/도 순위')
                 per_gdp_korea_display = per_gdp[['시/도','총생산 (달러)']].copy()
                 per_gdp_korea_display_sorted = per_gdp_korea_display.sort_values(by='총생산 (달러)',ascending=False)
                 st.dataframe(per_gdp_korea_display_sorted,hide_index=True,width=300,height=510)
             with col3:
-                # 막대그래프 표시
-                plt.figure(figsize=(4,4))
-                plt.bar(per_gdp['시/도'], per_gdp['총생산 (달러)'])
-                plt.title('지역별 1인당 총생산')
-                plt.xlabel('단위 : *1달러')
-                plt.xticks(rotation=45, ha='right', fontsize=8) # 글자가 겹침
-                # plt.title(f"{selected_option} 총생산") 
-                st.pyplot(plt)
+                # 메트릭카드
+                max_per_gdp_location = per_gdp_korea_display_sorted.iloc[0]['시/도']
+                max_per_gdp_value = int(per_gdp_korea_display_sorted.iloc[0]['총생산 (달러)']) # int:정수부분만 표시
+                min_per_gdp_location = per_gdp_korea_display_sorted.iloc[-1]['시/도']
+                min_per_gdp_value = int(per_gdp_korea_display_sorted.iloc[-1]['총생산 (달러)'])
+
+
+                st.subheader('지역별 최고/최저 (달러)')
+                st.metric(label=max_per_gdp_location, value=max_per_gdp_value)
+                st.metric(label=min_per_gdp_location, value=min_per_gdp_value)
+                st.subheader('세계/전국 평균 (달러)')
+                st.metric('세계 평균', 13870)
+                st.metric('전국 평균', 41948)
+
             col4, col5 = st.columns(2)
             with col4:
-                pass
+                # 상위 10개의 데이터만 추출
+                per_gdp_korea_display_sorted = per_gdp_korea_display_sorted[per_gdp_korea_display_sorted['시/도'] != '전국']
+                top_10_per_gdp = per_gdp_korea_display_sorted.nlargest(10, '총생산 (달러)')
+                # 막대그래프 표시
+                plt.figure(figsize=(6,4))
+                plt.bar(top_10_per_gdp['시/도'], top_10_per_gdp['총생산 (달러)'])
+                plt.title('상위 10개 지역 1인당 총생산')
+                plt.xlabel('지역별 (달러)')
+                plt.ylabel('총생산')
+                plt.xticks(rotation=45, ha='right', fontsize=8) # 글자가 겹침
+                st.pyplot(plt)
             with col5:
                 pass
 else:
