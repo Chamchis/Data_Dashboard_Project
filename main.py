@@ -12,8 +12,9 @@ plt.rcParams['font.family'] ='Malgun Gothic'
 st.set_page_config(layout='wide')
 
 # 데이터 불러오기 및 인코딩
-df_gdp = pd.read_csv('시도별_경제활동별_지역내총생산_20240315165307.csv', encoding='cp949')
-per_df_gdp = pd.read_csv('시도별_1인당_지역내총생산__지역총소득__개인소득_20240316162000.csv', encoding='cp949')
+df_gdp = pd.read_csv('시도별_경제활동별_지역내총생산_20240315165307.csv', encoding='cp949') # GDP
+per_df_gdp = pd.read_csv('시도별_1인당_지역내총생산__지역총소득__개인소득_20240316162000.csv', encoding='cp949') # 1인당 GDP
+df_pop = pd.read_csv('인구__가구_및_주택_–_읍면동_연도_끝자리_0__5___시군구_그_외_연도__20240318151543.csv',encoding='cp949') # 인구수
 
 # 특정 열만 선택 - 경제활동별 GDP
 df_gdp_selected_columns = ['시도별','경제활동별','명목']
@@ -105,12 +106,12 @@ if selected_sido == '전국':
             gdp_sum_sorted = gdp_sum_sorted.rename(columns={'종합_시도별':'시/도','종합_명목':'총생산 (조)'}) # 데이터프레임에 표기되는 문구를 변경
             gdp_sum_sorted = gdp_sum_sorted[gdp_sum_sorted['시/도'] != '전국'] # 지역별 수치를 보여줘야 하므로 전국 항목은 제외함
             with col1: # 지도
-                st.subheader('대한민국 총생산 (단위 : 조)')
+                st.subheader('대한민국 총생산')
                 color_map(gdp_sum_sorted, ['시/도','총생산 (조)'])
                 folium_static(korea_map)
 
             with col2: # 전국 GDP 데이터 표시
-                st.subheader("시/도 순위")
+                st.subheader("시/도 순위 (단위 : 조)")
                 st.dataframe(gdp_sum_sorted, hide_index=True,width=300,height=510)
 
             with col3: # 메트릭카드
@@ -180,7 +181,7 @@ if selected_sido == '전국':
             with col2:
                 # 전국 1인당 GDP 데이터 표시
                 per_gdp = per_gdp[per_gdp['시/도'] != '전국']
-                st.subheader('시/도 순위')
+                st.subheader('시/도 순위 (단위 : 달러)')
                 per_gdp_sorted = per_gdp.sort_values(by='총생산 (달러)',ascending=False)
                 st.dataframe(per_gdp_sorted,hide_index=True,width=300,height=510)
             with col3:
@@ -234,10 +235,11 @@ else: # 셀렉박스에서 다른 지역을 선택했을때
         zoom = 7
     # 선택한 지역 지도
     region_map = folium.Map(location=region_center[selected_sido], zoom_start = zoom, tiles='CartoDB positron')
+    folium.GeoJson(geojson_data, name='geojson_map').add_to(region_map)
     # 마커 표시
     folium.Marker(
         location=region_center[selected_sido],
         tooltip=f"{selected_sido}"
     ).add_to(region_map)
     folium.GeoJson(geojson_data, name='geojson_map').add_to(region_map)
-    region_page.show_region(gdp_region,per_gdp,region_map,selected_sido)
+    region_page.show_region(gdp_region,per_gdp,region_map,selected_sido, df_pop) # 경제활동별GDP, 1인당GDP, 지역별 지도, 선택한 지역, 인구수

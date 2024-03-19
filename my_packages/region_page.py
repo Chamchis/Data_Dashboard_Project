@@ -8,10 +8,8 @@ import numpy as np
 # 한글 폰트 경로 설정
 plt.rcParams['font.family'] ='Malgun Gothic'
 
-pop = pd.read_csv('인구__가구_및_주택_–_읍면동_연도_끝자리_0__5___시군구_그_외_연도__20240318151543.csv',encoding='cp949')
-
-def show_region(gdp_region, per_gdp, region_map, selected_option):
-    gdp_data = gdp_region[gdp_region['시도별'] == selected_option] # GDP
+def show_region(gdp, per_gdp, region_map, selected_option,df_pop):
+    gdp_data = gdp[gdp['시도별'] == selected_option] # GDP
     per_gdp_data = per_gdp[per_gdp['시도별'] == selected_option] # 1인당 GDP
 
     # 선택한 시, 도를 강조
@@ -57,11 +55,11 @@ def show_region(gdp_region, per_gdp, region_map, selected_option):
                 st.metric('전국 평균', 41948)
                 st.metric(label=f'{selected_option}', value=selected_option_per_gdp)
 
-                pop_metric = pop.loc[pop['행정구역별(읍면동)'] == selected_option, '총인구 (명)']
-                pop_metric = pop_metric.values[0] // 10000
+                pop = df_pop.loc[df_pop['행정구역별(읍면동)'] == selected_option, '총인구 (명)']
+                pop = pop.values[0] // 10000
                 st.subheader('인구수 (만명)')
                 st.metric('전국',5169)
-                st.metric(f'{selected_option}',pop_metric)
+                st.metric(f'{selected_option}',pop)
 
         col4, col5 = st.columns(2)
         with col4:
@@ -78,10 +76,10 @@ def show_region(gdp_region, per_gdp, region_map, selected_option):
             plt.xticks(rotation=45, ha='right', fontsize=8) # 글자가 겹침
             st.pyplot(plt)
         with col5:
-            # 가독성을 위하여 일정 확률 이하는 '기타'로 묶어서 표시
+            # 가독성을 위하여 비율 5% 이하는 '기타'로 묶어서 표시
             merged_data = gdp_data_excluded_name.copy()
             total_percent = merged_data['명목'].sum()
-            threshold = 0.1
+            threshold = 0.05
             merged_data['명목'] = merged_data['명목'] / total_percent
             small_values = merged_data[merged_data['명목'] < threshold]
 
