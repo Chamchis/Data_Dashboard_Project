@@ -126,7 +126,8 @@ if selected_sido == '전국':
 
                 # 경제활동별 매트릭카드
                 economic = gdp_region[gdp_region['시도별'] == '전국'] 
-                gdp_region = economic[~economic['경제활동별'].isin(['지역내총생산(시장가격)', '순생산물세', '총부가가치(기초가격)'])] # 합산항목은 제외
+                gdp_region = economic[~economic['경제활동별'].isin(['농업, 임업 및 어업', '광제조업',
+                                        '전기, 가스, 증기 및 공기 조절 공급업','건설업','서비스업', '지역내총생산(시장가격)','총부가가치(기초가격)'])] # 합산항목은 제외
 
                 # 최고/최저값 계산
                 max_economy_activity = gdp_region[gdp_region['명목'] == gdp_region['명목'].max()]['경제활동별'].values[0]
