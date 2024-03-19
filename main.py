@@ -142,7 +142,7 @@ if selected_sido == '전국':
             col4, col5 = st.columns(2)
             with col4:
                 # 상위 5개의 데이터만 추출
-                gdp_region = gdp_region[gdp_region['경제활동별'].isin(['농업, 임업 및 어업', '광제조업',
+                gdp_region = gdp_region[~gdp_region['경제활동별'].isin(['농업, 임업 및 어업', '광제조업',
                                         '전기, 가스, 증기 및 공기 조절 공급업','건설업','서비스업'])]
                 top_5_gdp = gdp_region.nlargest(5, '명목')
                 # 경제활동별 생산량 그래프

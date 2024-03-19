@@ -64,8 +64,8 @@ def show_region(gdp, per_gdp, region_map, selected_option,df_pop):
         col4, col5 = st.columns(2)
         with col4:
             # 막대그래프에서 전체 수치를 보여줄 필요는 없기에 '지역내총생산' 항목은 제외
-            gdp_data_excluded_name = gdp_data[gdp_data['경제활동별'].isin(['농업, 임업 및 어업', '광제조업',
-                                        '전기, 가스, 증기 및 공기 조절 공급업','건설업','서비스업'])]
+            gdp_data_excluded_name = gdp_data[~gdp_data['경제활동별'].isin(['농업, 임업 및 어업', '광제조업',
+                                        '전기, 가스, 증기 및 공기 조절 공급업','건설업','서비스업', '지역내총생산(시장가격)','총부가가치(기초가격)'])]
             top_10_region_gdp = gdp_data_excluded_name.nlargest(5,'명목')
             # 막대 그래프 표시
             plt.figure(figsize=(6, 4))
