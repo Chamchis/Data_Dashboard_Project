@@ -10,8 +10,8 @@ plt.rcParams['font.family'] ='Malgun Gothic'
 
 pop = pd.read_csv('인구__가구_및_주택_–_읍면동_연도_끝자리_0__5___시군구_그_외_연도__20240318151543.csv',encoding='cp949')
 
-def show_region(gdp, per_gdp, region_map, selected_option):
-    gdp_data = gdp[gdp['시도별'] == selected_option] # GDP
+def show_region(gdp_region, per_gdp, region_map, selected_option):
+    gdp_data = gdp_region[gdp_region['시도별'] == selected_option] # GDP
     per_gdp_data = per_gdp[per_gdp['시도별'] == selected_option] # 1인당 GDP
 
     # 선택한 시, 도를 강조
